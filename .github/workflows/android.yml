@@ -1,7 +1,10 @@
 name: Build Android APK
 
 # SlotBound 安卓单体 APK：游戏直接嵌进包里，装上就能玩。
-# 手动触发，只出 debug APK（SlotBound.apk）当 workflow artifact，不发 Release。
+# 手动触发，只出 release APK（SlotBound.apk）当 workflow artifact，不发 Release。
+# 签名用固定密钥（GitHub Secrets ANDROID_KEYSTORE_*，2026-11-25 建），
+# 以后所有构建同一签名，可直接覆盖安装（第二次构建的 debug 签名已无法找回，
+# 那次的私钥随临时构建机销毁了，换固定密钥后须先卸载一次）。
 # 游戏内容来自 Yakult00/Slotbound-iOS（CI 里 checkout 打包），安卓版本号单独从 1.0.0 起。
 # 注意：游戏自带的完整性检查只认 fused 的 game.love 文件，不认 APK 里散放的
 # 文件，所以不能让 action 把 game.love 解开放进 assets，必须把整个 game.love
@@ -133,11 +136,15 @@ jobs:
           version-string: "${{ steps.version.outputs.version }}"
           version-code: ${{ steps.version.outputs.code }}
           output-folder: "./dist"
+          keystore-alias: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          keystore-key-password: ${{ secrets.ANDROID_KEYSTORE_KEYPASSWORD }}
+          keystore-store-password: ${{ secrets.ANDROID_KEYSTORE_STOREPASSWORD }}
 
       - name: Rename to SlotBound.apk
         run: |
           set -euo pipefail
-          mv dist/SlotBound-debug.apk dist/SlotBound.apk
+          mv dist/SlotBound-release.apk dist/SlotBound.apk
           ls -lh dist/
 
       - name: Upload APK artifact
