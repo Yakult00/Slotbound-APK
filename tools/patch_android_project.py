@@ -82,28 +82,52 @@ def patch_manifest(root):
 
 
 def write_gradle_properties(root):
+    """只覆盖必须改的键，其余（注释、默认项）原样保留。
+
+    game.love 有 100MB，:app:compressEmbedRecordReleaseAssets 默认 512MB 堆会
+    直接 Java heap space 崩掉，所以必须显式给 gradle 加大堆。
+    """
     version_name = os.environ["VERSION_STRING"]
     version_code = os.environ["VERSION_CODE"]
     if not re.fullmatch(r"\d+", version_code):
         fail("VERSION_CODE 不是纯数字: %r" % version_code)
     name_bytes = ",".join(str(b) for b in APP_NAME.encode("utf-8"))
-    lines = [
-        "app.name_byte_array=%s" % name_bytes,
-        "app.application_id=%s" % BUNDLE_ID,
-        "app.orientation=%s" % ORIENTATION,
-        "app.version_code=%s" % version_code,
-        "app.version_name=%s" % version_name,
-        "android.enableJetifier=false",
-        "android.useAndroidX=true",
-        "android.defaults.buildfeatures.buildconfig=true",
-        "android.nonTransitiveRClass=true",
-        "android.nonFinalResIds=true",
-        "org.gradle.caching=true",
-    ]
+
+    wanted = {
+        "app.name_byte_array": name_bytes,
+        "app.application_id": BUNDLE_ID,
+        "app.orientation": ORIENTATION,
+        "app.version_code": version_code,
+        "app.version_name": version_name,
+        "android.enableJetifier": "false",
+        "android.useAndroidX": "true",
+        "android.defaults.buildfeatures.buildconfig": "true",
+        "android.nonTransitiveRClass": "true",
+        "android.nonFinalResIds": "true",
+        "org.gradle.caching": "true",
+        "org.gradle.jvmargs": "-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8",
+    }
+
     path = os.path.join(root, "gradle.properties")
+    kept = []
+    seen = set()
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f.read().splitlines():
+                m = re.match(r"\s*([A-Za-z0-9_.-]+)\s*=", line)
+                if m and m.group(1) in wanted:
+                    if m.group(1) not in seen:
+                        kept.append("%s=%s" % (m.group(1), wanted[m.group(1)]))
+                        seen.add(m.group(1))
+                    continue
+                kept.append(line)
+    for key, value in wanted.items():
+        if key not in seen:
+            kept.append("%s=%s" % (key, value))
+
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("\n".join(lines) + "\n")
-    print("gradle.properties: version=%s (%s)" % (version_name, version_code))
+        f.write("\n".join(kept).rstrip("\n") + "\n")
+    print("gradle.properties: version=%s (%s), jvmargs=%s" % (version_name, version_code, wanted["org.gradle.jvmargs"]))
 
 
 def main():
