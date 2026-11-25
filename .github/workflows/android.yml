@@ -17,6 +17,17 @@ on:
         description: "Version string (empty = latest tag of this repo, or 1.0.0)"
         required: false
         default: ""
+      abis:
+        description: "目标 ABI（arm64 = 只编 arm64-v8a，快；all = 全部）"
+        type: choice
+        default: "arm64"
+        options:
+          - arm64
+          - all
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -33,6 +44,18 @@ jobs:
           repository: Yakult00/Slotbound-iOS
           path: ios
           fetch-depth: 0
+
+      - name: Select ABI patch
+        id: abi
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.abis }}" = "all" ]; then
+            echo "patch=" >> "$GITHUB_OUTPUT"
+            echo "ABI: all (arm64-v8a + armeabi-v7a + x86_64 debug)"
+          else
+            echo "patch=./patches/arm64-only.patch" >> "$GITHUB_OUTPUT"
+            echo "ABI: arm64-v8a only"
+          fi
 
       - name: Derive version
         id: version
@@ -132,6 +155,7 @@ jobs:
           resource-path: "./android/res"
           icon-specifier: "@drawable/icon"
           love-ref: "11.5a"
+          love-patch: ${{ steps.abi.outputs.patch }}
           love-package: "./dummy.love"
           extra-assets: "./ios/game.love"
           product-name: "SlotBound"

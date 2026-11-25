@@ -1,0 +1,21 @@
+diff --git a/love/build.gradle b/love/build.gradle
+index eb3dc16..a31d429 100644
+--- a/love/build.gradle
++++ b/love/build.gradle
+@@ -22,7 +22,7 @@ android {
+             // Specifies the ABI configurations of your native
+             // libraries Gradle should build and package with your APK.
+             // noinspection ChromeOsAbiSupport
+-            abiFilters 'armeabi-v7a', 'arm64-v8a'
++            abiFilters 'arm64-v8a'
+             debugSymbolLevel 'SYMBOL_TABLE'
+         }
+     }
+@@ -69,7 +69,6 @@ android {
+         debug {
+             ndk {
+                 // noinspection ChromeOsAbiSupport
+-                abiFilters += 'x86_64'
+             }
+         }
+     }
