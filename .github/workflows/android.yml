@@ -33,7 +33,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VER="${{ inputs.version }}"
           else
-            VER="$(git -C ios describe --tags --abbrev=0 | sed 's/^v//')"
+            VER="$(git -C ios describe --tags --abbrev=0 --match 'v[0-9]*' | sed 's/^v//')"
           fi
           CODE="$(echo "$VER" | tr -d '.')"
           echo "version=$VER" >> "$GITHUB_OUTPUT"
