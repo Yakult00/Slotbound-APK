@@ -1,0 +1,123 @@
+name: Build Android APK
+
+# SlotBound 安卓单体 APK：游戏直接嵌进包里，装上就能玩。
+# 手动触发，只出 debug APK（SlotBound.apk）当 workflow artifact，不发 Release。
+# 游戏内容来自 Yakult00/Slotbound-iOS（CI 里 checkout 打包），版本号跟 iOS 走。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version string (empty = latest Slotbound-iOS tag)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Slotbound-APK
+        uses: actions/checkout@v4
+
+      - name: Checkout Slotbound-iOS (game files)
+        uses: actions/checkout@v4
+        with:
+          repository: Yakult00/Slotbound-iOS
+          path: ios
+          fetch-depth: 0
+
+      - name: Derive version
+        id: version
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.version }}" ]; then
+            VER="${{ inputs.version }}"
+          else
+            VER="$(git -C ios describe --tags --abbrev=0 | sed 's/^v//')"
+          fi
+          CODE="$(echo "$VER" | tr -d '.')"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Version: $VER ($CODE)"
+
+      - name: Verify game file integrity
+        working-directory: ios
+        run: python3 tools/verify_integrity.py .
+
+      - name: Package game.love from repo files
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          python3 - << 'PYEOF'
+          import os, zipfile
+          include = ["main.lua", "real_main.luac", "conf.lua", "icon.png",
+                     "trainer_backend.lua", "release.flag", "@bootstrap", "src"]
+          with zipfile.ZipFile("game.love", "w", zipfile.ZIP_DEFLATED) as z:
+              for entry in include:
+                  if os.path.isdir(entry):
+                      for root, _, files in os.walk(entry):
+                          for f in files:
+                              p = os.path.join(root, f)
+                              z.write(p, p)
+                  else:
+                      z.write(entry, entry)
+          print("game.love packaged")
+          PYEOF
+          ls -lh game.love
+
+      - name: Assert game.love contents
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          python3 - << 'PYEOF'
+          import sys, zipfile
+          EXPECT_TOTAL = 2079
+          EXPECT_SRC = 2072
+          KEY_FILES = ["main.lua", "real_main.luac", "conf.lua", "icon.png",
+                       "trainer_backend.lua", "release.flag", "@bootstrap"]
+          with zipfile.ZipFile("game.love") as z:
+              names = z.namelist()
+          total = len(names)
+          src_count = sum(1 for n in names if n.startswith("src/"))
+          missing = [k for k in KEY_FILES if k not in names]
+          problems = []
+          if total != EXPECT_TOTAL:
+              problems.append(f"total entries: want {EXPECT_TOTAL}, got {total}")
+          if src_count != EXPECT_SRC:
+              problems.append(f"src/ entries: want {EXPECT_SRC}, got {src_count}")
+          if missing:
+              problems.append(f"missing key files: {', '.join(missing)}")
+          if problems:
+              print("FAIL: game.love contents assertion failed:")
+              for p in problems:
+                  print("  " + p)
+              sys.exit(1)
+          print(f"OK: game.love has {total} entries ({src_count} under src/), "
+                f"all {len(KEY_FILES)} key files present")
+          PYEOF
+
+      - name: Build Android APK
+        uses: love-actions/love-actions-android@v2
+        with:
+          app-name: "SlotBound"
+          bundle-id: "com.yakult00.slotbound"
+          resource-path: "./android/res"
+          icon-specifier: "@drawable/icon"
+          love-ref: "11.5a"
+          love-package: "./ios/game.love"
+          product-name: "SlotBound"
+          version-string: "${{ steps.version.outputs.version }}"
+          version-code: ${{ steps.version.outputs.code }}
+          output-folder: "./dist"
+
+      - name: Rename to SlotBound.apk
+        run: |
+          set -euo pipefail
+          mv dist/SlotBound-debug.apk dist/SlotBound.apk
+          ls -lh dist/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SlotBound.apk
+          path: dist/SlotBound.apk
