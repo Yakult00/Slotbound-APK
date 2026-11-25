@@ -2,7 +2,10 @@ name: Build Android APK
 
 # SlotBound 安卓单体 APK：游戏直接嵌进包里，装上就能玩。
 # 手动触发，只出 debug APK（SlotBound.apk）当 workflow artifact，不发 Release。
-# 游戏内容来自 Yakult00/Slotbound-iOS（CI 里 checkout 打包），版本号跟 iOS 走。
+# 游戏内容来自 Yakult00/Slotbound-iOS（CI 里 checkout 打包），安卓版本号单独从 1.0.0 起。
+# 注意：游戏自带的完整性检查只认 fused 的 game.love 文件，不认 APK 里散放的
+# 文件，所以不能让 action 把 game.love 解开放进 assets，必须把整个 game.love
+# 以 extra-assets 的形式原样放进 assets/game.love。
 
 on:
   workflow_dispatch:
@@ -99,6 +102,23 @@ jobs:
                 f"all {len(KEY_FILES)} key files present")
           PYEOF
 
+      - name: Create dummy love package
+        run: |
+          set -euo pipefail
+          python3 - << 'PYEOF'
+          # love-actions-android always EXTRACTS love-package loose into assets/.
+          # The game's own bootstrap rejects loose APK assets (it wants a real
+          # fused .love, like iOS). So feed the action a dummy .love and put
+          # the real game.love in via extra-assets: LÖVE then finds
+          # assets/game.love and loads it as a fused archive.
+          import zipfile
+          with zipfile.ZipFile("dummy.love", "w", zipfile.ZIP_DEFLATED) as z:
+              z.writestr("main.lua", 'function love.draw() love.graphics.print("dummy", 10, 10) end\n')
+              z.writestr("conf.lua", 'function love.conf(t) t.window.title = "SlotBound" end\n')
+          print("dummy.love created")
+          PYEOF
+          ls -lh dummy.love
+
       - name: Build Android APK
         uses: love-actions/love-actions-android@v2
         with:
@@ -107,7 +127,8 @@ jobs:
           resource-path: "./android/res"
           icon-specifier: "@drawable/icon"
           love-ref: "11.5a"
-          love-package: "./ios/game.love"
+          love-package: "./dummy.love"
+          extra-assets: "./ios/game.love"
           product-name: "SlotBound"
           version-string: "${{ steps.version.outputs.version }}"
           version-code: ${{ steps.version.outputs.code }}
