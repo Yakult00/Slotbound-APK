@@ -85,7 +85,7 @@ jobs:
           python3 - << 'PYEOF'
           import os, zipfile
           include = ["main.lua", "real_main.luac", "conf.lua", "icon.png",
-                     "trainer_backend.lua", "sb_panel.lua", "release.flag", "@bootstrap", "src"]
+                     "trainer_backend.lua", "release.flag", "@bootstrap", "src"]
           with zipfile.ZipFile("game.love", "w", zipfile.ZIP_DEFLATED) as z:
               for entry in include:
                   if os.path.isdir(entry):
@@ -105,10 +105,10 @@ jobs:
           set -euo pipefail
           python3 - << 'PYEOF'
           import sys, zipfile
-          EXPECT_TOTAL = 2080
+          EXPECT_TOTAL = 2079
           EXPECT_SRC = 2072
           KEY_FILES = ["main.lua", "real_main.luac", "conf.lua", "icon.png",
-                       "trainer_backend.lua", "sb_panel.lua", "release.flag", "@bootstrap"]
+                       "trainer_backend.lua", "release.flag", "@bootstrap"]
           with zipfile.ZipFile("game.love") as z:
               names = z.namelist()
           total = len(names)
