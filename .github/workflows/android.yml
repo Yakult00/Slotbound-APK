@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout Slotbound-APK
         uses: actions/checkout@v4
+        with:
+          fetch-tags: true
 
       - name: Checkout Slotbound-iOS (game files)
         uses: actions/checkout@v4
@@ -41,7 +43,7 @@ jobs:
           else
             # Android versioning is separate from iOS: latest vX.Y.Z tag of
             # this repo, or 1.0.0 when no tag exists yet.
-            VER="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//')"
+            VER="$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//')" || true
             if [ -z "$VER" ]; then VER="1.0.0"; fi
           fi
           CODE="$(echo "$VER" | tr -d '.')"
