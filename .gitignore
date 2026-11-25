@@ -1,0 +1,3 @@
+# 构建期从 release 资产 game-latest 拉下来的游戏本体，不入库
+game.love
+dummy.love

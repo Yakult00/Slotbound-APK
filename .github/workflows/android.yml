@@ -3,7 +3,10 @@ name: Build Android APK
 # SlotBound 安卓单体 APK：游戏直接嵌进包里，装上就能玩。
 # 手动触发，只出 release APK（SlotBound.apk）当 workflow artifact，不发 Release。
 # 签名用固定密钥（GitHub Secrets ANDROID_KEYSTORE_*）。
-# 游戏内容来自 Yakult00/Slotbound-iOS（CI 里 checkout 打包），安卓版本号单独从 1.0.0 起。
+# 游戏本体 game.love 存放在本仓库的 release 资产里（tag: game-latest），
+# 构建时用 gh 拉取并校验 tools/game_love.sha256，与 Slotbound-iOS 仓库完全解耦。
+# 更新游戏本体：gh release upload game-latest game.love --clobber -R Yakult00/Slotbound-APK
+# 然后同步改 tools/game_love.sha256。
 # 注意：游戏自带的完整性检查只认 fused 的 game.love，不认 APK 里散放的文件，
 # 所以必须把整个 game.love 原样放进 assets/game.love。
 #
@@ -39,12 +42,17 @@ jobs:
         with:
           fetch-tags: true
 
-      - name: Checkout Slotbound-iOS (game files)
-        uses: actions/checkout@v4
-        with:
-          repository: Yakult00/Slotbound-iOS
-          path: ios
-          fetch-depth: 0
+      - name: Fetch game.love payload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # 游戏本体存在本仓库的 release 资产里（tag: game-latest），
+          # 构建不再 clone Slotbound-iOS，两个仓库互不影响。
+          gh release download game-latest -R "${{ github.repository }}" \
+            -p game.love --clobber -O game.love
+          sha256sum -c tools/game_love.sha256
+          ls -lh game.love
 
       - name: Derive version
         id: version
@@ -63,61 +71,6 @@ jobs:
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "Version: $VER (code $CODE)"
-
-      - name: Verify game file integrity
-        working-directory: ios
-        run: python3 tools/verify_integrity.py .
-
-      - name: Package game.love from repo files
-        working-directory: ios
-        run: |
-          set -euo pipefail
-          python3 - << 'PYEOF'
-          import os, zipfile
-          include = ["main.lua", "real_main.luac", "conf.lua", "icon.png",
-                     "trainer_backend.lua", "release.flag", "@bootstrap", "src"]
-          with zipfile.ZipFile("game.love", "w", zipfile.ZIP_DEFLATED) as z:
-              for entry in include:
-                  if os.path.isdir(entry):
-                      for root, _, files in os.walk(entry):
-                          for f in files:
-                              p = os.path.join(root, f)
-                              z.write(p, p)
-                  else:
-                      z.write(entry, entry)
-          print("game.love packaged")
-          PYEOF
-          ls -lh game.love
-
-      - name: Assert game.love contents
-        working-directory: ios
-        run: |
-          set -euo pipefail
-          python3 - << 'PYEOF'
-          import sys, zipfile
-          EXPECT_TOTAL = 2079
-          EXPECT_SRC = 2072
-          KEY_FILES = ["main.lua", "real_main.luac", "conf.lua", "icon.png",
-                       "trainer_backend.lua", "release.flag", "@bootstrap"]
-          with zipfile.ZipFile("game.love") as z:
-              names = z.namelist()
-          total = len(names)
-          src_count = sum(1 for n in names if n.startswith("src/"))
-          missing = [k for k in KEY_FILES if k not in names]
-          problems = []
-          if total != EXPECT_TOTAL:
-              problems.append("total entries: want %d, got %d" % (EXPECT_TOTAL, total))
-          if src_count != EXPECT_SRC:
-              problems.append("src/ entries: want %d, got %d" % (EXPECT_SRC, src_count))
-          if missing:
-              problems.append("missing key files: " + ", ".join(missing))
-          if problems:
-              print("FAIL: game.love contents assertion failed:")
-              for p in problems:
-                  print("  " + p)
-              sys.exit(1)
-          print("OK: game.love has %d entries (%d under src/)" % (total, src_count))
-          PYEOF
 
       - name: Create dummy love package
         run: |
@@ -159,7 +112,7 @@ jobs:
           set -euo pipefail
           cp -r -f ./android/res/* love-android/app/src/main/res/
           7z x dummy.love -olove-android/app/src/embed/assets/ > /dev/null
-          cp -f ./ios/game.love love-android/app/src/embed/assets/game.love
+          cp -f ./game.love love-android/app/src/embed/assets/game.love
           ls -lh love-android/app/src/embed/assets/
 
       - name: Decode keystore
