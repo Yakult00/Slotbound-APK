@@ -1,10 +1,10 @@
 # SlotBound 安卓版
 
-把 PC 游戏 SlotBound 搬到安卓手机上玩。SlotBound 是一款老虎机肉鸽游戏（拉老虎机打怪、攒遗物、闯关），原本只有 PC 版，没有官方手游。这个项目把 PC 最新版（v1.0.3）的游戏包打进 LÖVE 11.5 引擎，编译成一个单体 APK，装上就能直接玩，存档、道具、关卡都和 PC 版一样，免费。
+把 PC 游戏 SlotBound 搬到安卓手机上玩。SlotBound 是一款老虎机肉鸽游戏（拉老虎机打怪、攒遗物、闯关），原本只有 PC 版，没有官方手游。这个项目把 PC 最新版（v1.0.3）的游戏包打进 LÖVE 11.5 引擎，编译成一个单体 APK，装上就能直接玩，存档、道具、关卡都和 PC 版一样。
 
 游戏本体与 iOS 移植版（[Yakult00/Slotbound-iOS](https://github.com/Yakult00/Slotbound-iOS)）同源，操作、面板、版本号都对齐。
 
-游戏版权归原作者 Optima Arch 所有，本项目是个人移植分享，仅供学习交流。
+游戏版权归原作者 Optima Arch 所有，本项目是个人移植分享，仅供学习交流，请支持正版原作。仓库里的构建脚本以 MIT 许可开源（见 [LICENSE](LICENSE)），不覆盖游戏本体。
 
 
 ## 截图
@@ -64,8 +64,9 @@
 
 ```
 Slotbound-APK/
-├── .github/workflows/
-│   └── android.yml        # 编译流水线（拉游戏包 → 编译 → 校验签名 → 上传 artifact）
+├── .github/
+│   ├── workflows/android.yml          # 编译流水线（拉游戏包 → 编译 → 校验签名 → 上传 artifact）
+│   └── ISSUE_TEMPLATE/bug_report.yml  # 问题反馈模板
 ├── android/
 │   └── res/drawable/icon.png   # 应用图标
 ├── patches/
@@ -74,6 +75,9 @@ Slotbound-APK/
 │   ├── game_love.sha256   # 游戏本体 pin（sha256 + 文件名）
 │   └── patch_android_project.py   # 改 love-android 工程的包名/图标/版本号
 ├── docs/                  # README 截图
+├── CHANGELOG.md
+├── LICENSE                # MIT，只覆盖脚本与文档，不含游戏本体
+├── .gitattributes         # 标记二进制资源，避免换行转换
 └── README.md
 ```
 
@@ -90,6 +94,8 @@ Actions 页 → Build Android APK → Run workflow。流水线做的事：
 5. 编译 release APK（gradle + NDK 走缓存，冷缓存约 6–7 分钟，命中后约 4–5 分钟）
 6. `apksigner verify` 校验签名，产物 `SlotBound.apk` 只出 workflow artifact，不自动发 Release
 
+> 自己 fork 之后要出包，得先在仓库的 Settings → Secrets and variables → Actions 里配 4 个 secret：`ANDROID_KEYSTORE_BASE64`（keystore 文件的 base64）、`ANDROID_KEYSTORE_ALIAS`、`ANDROID_KEYSTORE_KEYPASSWORD`、`ANDROID_KEYSTORE_STOREPASSWORD`，少一个就会在 `Decode keystore` 那步失败。只想装来玩的话，把签名步骤换成 debug 签名即可。
+
 ### 更新游戏本体
 
 ```bash
@@ -101,7 +107,7 @@ sha256sum game.love        # 把新哈希写进 tools/game_love.sha256
 
 ## 移植说明
 
-- 游戏数据来自 PC 最新版（2079 个文件），官方原有的加密容器已逆向解出，`game.love` 就是解开的游戏包。
+- 游戏数据来自 PC 最新版（2080 个文件 = 2079 个游戏文件 + 面板 `sb_panel.lua`），官方原有的加密容器已逆向解出，`game.love` 就是解开的游戏包。
 - 与 iOS 版的差别只在引擎外壳：iOS 编成未签名 IPA 用 LiveContainer 装，安卓编成 APK 直接装；游戏内逻辑（`main.lua` 垫片的触屏适配、运气/保底系统、`trainer_backend.lua`）沿用同一份。
 - 启动全屏由包内 `main.lua` 调 `love.window.setFullscreen(true)` 实现，系统状态栏和导航栏都不显示。
-- `game.love` 里有 66 个 `.lua` 是 LuaJIT 字节码（不是源码），在 GitHub 上打开会显示二进制；图片、音乐、配置文件可以直接浏览。
+- `game.love` 里共 69 个 `.lua`，其中 64 个是 LuaJIT 字节码（不是源码），在 GitHub 上打开会显示二进制；另外 5 个是源码（`main.lua`、`conf.lua`、`sb_panel.lua`、`trainer_backend.lua`、`release_integrity.lua`），图片、音乐、配置文件可以直接浏览。

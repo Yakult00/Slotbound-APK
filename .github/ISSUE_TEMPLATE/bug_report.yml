@@ -1,0 +1,71 @@
+name: 问题反馈
+description: 安卓移植版出现闪退、黑屏、触屏不灵或面板异常
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        反馈前先确认：装的是 [Releases](https://github.com/Yakult00/Slotbound-APK/releases) 里的包，不是自己改过或重签的。
+        游戏本体问题（关卡、数值、存档）请先说明是否关掉面板后仍能复现。
+
+  - type: input
+    id: device
+    attributes:
+      label: 手机型号
+      placeholder: 例如 OnePlus 9RT（MT2110）
+    validations:
+      required: true
+
+  - type: input
+    id: android
+    attributes:
+      label: 安卓版本 / 系统
+      placeholder: 例如 Android 12，ColorOS 12.1
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 游戏版本
+      description: 主界面左下角显示的版本号，或包的 sha256
+      placeholder: 例如 v1.0.3 / SlotBound.apk 933a7bb7…
+    validations:
+      required: true
+
+  - type: dropdown
+    id: panel
+    attributes:
+      label: 发生问题时面板状态
+      options:
+        - 没开过面板
+        - 面板开着
+        - 开过面板但已关闭
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 进入主菜单
+        2. 点 PLAY 开局
+        3. 长按士兵……
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望现象 / 实际现象
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 截图或日志（可选）
+      description: 闪退可在开发者选项里抓 logcat，过滤 `love` 或 `slotbound`
+    validations:
+      required: false
