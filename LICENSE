@@ -19,19 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-适用范围说明
-
-上面的 MIT 许可只覆盖本仓库里的构建脚本、工具和文档，即：
-
-- `.github/`（编译流水线）
-- `tools/`（打包脚本、哈希 pin）
-- `patches/`（love-android 工程补丁）
-- `android/`（图标等外壳资源）
-- 根目录的 Markdown 文档
-
-游戏本体不在本许可范围内：`game.love`（含发布在 release 资产 `game-latest` 里的那份）
-及其中的美术、音频、数据、代码，版权归原作者 Optima Arch 所有，本仓库不授予任何使用、
-复制或再分发许可。本仓库不含游戏本体源码，只在构建时按哈希校验后原样打包。

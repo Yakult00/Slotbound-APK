@@ -4,7 +4,7 @@
 
 游戏本体与 iOS 移植版（[Yakult00/Slotbound-iOS](https://github.com/Yakult00/Slotbound-iOS)）同源，操作、面板、版本号都对齐。
 
-游戏版权归原作者 Optima Arch 所有，本项目是个人移植分享，仅供学习交流，请支持正版原作。仓库里的构建脚本以 MIT 许可开源（见 [LICENSE](LICENSE)），不覆盖游戏本体。
+游戏版权归原作者 Optima Arch 所有，本项目是个人移植分享，仅供学习交流，请支持正版原作。仓库里的构建脚本以 MIT 许可开源（见 [LICENSE](LICENSE)），游戏本体不在许可范围（见 [NOTICE.md](NOTICE.md)）。
 
 
 ## 截图
@@ -77,6 +77,7 @@ Slotbound-APK/
 ├── docs/                  # README 截图
 ├── CHANGELOG.md
 ├── LICENSE                # MIT，只覆盖脚本与文档，不含游戏本体
+├── NOTICE.md              # 游戏本体版权与许可范围
 ├── .gitattributes         # 标记二进制资源，避免换行转换
 └── README.md
 ```
